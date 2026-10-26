@@ -79,7 +79,7 @@
   {ok, pid()} | {error, any()}.
 start_link(ClientId, Hosts, Config) ->
   {ConnCfg0, MyCfg} = split_config(Config),
-  ConnCfg = ConnCfg0#{client_id => ClientId},
+  ConnCfg = conn_config(ClientId, ConnCfg0),
   Owner = self(),
   St = #{client_id => ClientId,
          seed_hosts => Hosts,
@@ -642,6 +642,10 @@ split_config(Config) ->
   {ConnCfg, MyCfg} = lists:partition(Pred, maps:to_list(Config)),
   {maps:from_list(ConnCfg), maps:from_list(MyCfg)}.
 
+%% An explicit connection client_id overrides the default wolff client ID.
+conn_config(ClientId, ConnCfg) ->
+  maps:merge(#{client_id => ClientId}, ConnCfg).
+
 -spec get_metadata([_Host], _ConnConfig, topic(), boolean(), timeout()) ->
           {ok, {pid(), term()}} | {error, term()}.
 get_metadata(Hosts, _ConnectFun, _Topic, _IsAutoCreateAllowed, _Timeout) when Hosts =:= [] ->
@@ -796,9 +800,9 @@ find_config(ClientId) ->
   end.
 
 get_config(#{start := {_Module, _StartLink, Args}}) ->
-    [_ClinetID, _Hosts, Config] = Args,
+    [ClientId, _Hosts, Config] = Args,
     {ConnConfig, _MyConfig} = split_config(Config),
-    ConnConfig.
+    conn_config(ClientId, ConnConfig).
 
 tr_reason({{Host, Port}, Reason}) ->
     #{host => bin([bin(Host), ":", bin(Port)]),
