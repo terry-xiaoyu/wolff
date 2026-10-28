@@ -67,6 +67,8 @@
 
 %% @doc Start a client.
 %% The started `gen_server' manages connections towards kafka brokers.
+%% Config's `client_id' overrides ClientId in Kafka request headers. When absent
+%% or undefined, ClientId is used. The supervised client keeps ClientId as its ID.
 %% Besides `kpro_connection' configs, `Config' also support below entries:
 %% * `reg_name' register the client process to a name. e.g. `{local, client_1}'
 %% * `connection_strategy', default `per_partition', can also be `per_broker'.
@@ -644,7 +646,10 @@ split_config(Config) ->
 
 %% An explicit connection client_id overrides the default wolff client ID.
 conn_config(ClientId, ConnCfg) ->
-  maps:merge(#{client_id => ClientId}, ConnCfg).
+  case maps:get(client_id, ConnCfg, undefined) of
+    undefined -> ConnCfg#{client_id => ClientId};
+    _ -> ConnCfg
+  end.
 
 -spec get_metadata([_Host], _ConnConfig, topic(), boolean(), timeout()) ->
           {ok, {pid(), term()}} | {error, term()}.
